@@ -1,0 +1,28 @@
+{
+  "name": "doodle-jumb",
+  "version": "1.0.1",
+  "description": "Simple Game Canvas",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "electron-packager . doodler --platform=win32 --arch=x64 --icon=doodler-left.ico --out=dist/ --overwrite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GiaKhang1810/doodle-jumb.git"
+  },
+  "author": "Khang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/GiaKhang1810/doodle-jumb/issues"
+  },
+  "homepage": "https://github.com/GiaKhang1810/doodle-jumb#readme",
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-packager": "^17.1.2"
+  },
+  "engines": {
+    "node": ">=16.x",
+    "npm": ">=7.0.0"
+  }
+}
