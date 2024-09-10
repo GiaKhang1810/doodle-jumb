@@ -2,15 +2,16 @@ let Game;
 let gameOver = false;
 let score = 0;
 let maxScore = 0;
+let max = 0;
 
 function moveDoodler(event) {
-    if (event.code == "ArrowRight" || event.code == "KeyD") {
+    if (event.code == 'ArrowRight' || event.code == 'KeyD') {
         Game.player.image = Game.player.right;
         Game.velocity.x = 4;
-    } else if (event.code == "ArrowLeft" || event.code == "KeyA") {
+    } else if (event.code == 'ArrowLeft' || event.code == 'KeyA') {
         Game.player.image = Game.player.left;
         Game.velocity.x = -4;
-    } else if (event.code == "Space" && gameOver) {
+    } else if (event.code == 'Space' && gameOver) {
         Game.player.x = Game.board.width / 2 - 23;
         Game.player.y = Game.board.height * 7 / 8 - 46;
         Game.velocity.x = 0;
@@ -23,7 +24,7 @@ function moveDoodler(event) {
 }
 
 function place() {
-    let { width, height, image } = Game.platform;
+    let { width, height, image, imageBreak } = Game.platform;
     Game.platform.cache = [];
 
     let platform = {
@@ -31,33 +32,57 @@ function place() {
         x: Game.board.width / 2,
         y: Game.board.height - 50,
         width,
-        height
+        height,
+        breakable: false
     }
 
     Game.platform.cache.push(platform);
 
+    let previousY = platform.y;
+    let minYGap = 80; 
+    let maxYGap = 150; 
+
     for (let index = 0; index < 6; index++) {
         let randomX = Math.floor(Math.random() * Game.board.width * 3 / 4);
+        let isBreakable = Math.random() > 0.7;
+
+        if (Game.platform.cache.filter(platform => platform.breakable).length > 3) 
+            isBreakable = false;
+
+        let yGap = Math.random() * (maxYGap - minYGap) + minYGap;
         let platform = {
-            image,
+            image: isBreakable ? imageBreak : image,
             x: randomX,
-            y: Game.board.height - 75 * index - 150,
+            y: previousY - yGap, 
             width,
-            height
+            height,
+            breakable: isBreakable
         }
 
         Game.platform.cache.push(platform);
+        previousY = platform.y; 
     }
 }
 
 function plat() {
     let randomX = Math.floor(Math.random() * Game.board.width * 3 / 4);
+    let isBreakable = Math.random() > 0.8;
+    
+    let previousPlatform = Game.platform.cache[Game.platform.cache.length - 1];
+    let minYGap = 80; 
+    let maxYGap = 150; 
+    let yGap = Math.random() * (maxYGap - minYGap) + minYGap;
+
+    if (Game.platform.cache.filter(platform => platform.breakable).length > 3) 
+        isBreakable = false;
+
     let platform = {
-        image: Game.platform.image,
+        image: isBreakable ? Game.platform.imageBreak : Game.platform.image,
         x: randomX,
-        y: -Game.platform.height,
+        y: previousPlatform.y - yGap,
         width: Game.platform.width,
-        height: Game.platform.height
+        height: Game.platform.height,
+        breakable: isBreakable
     }
 
     Game.platform.cache.push(platform);
@@ -66,42 +91,61 @@ function plat() {
 function Update() {
     requestAnimationFrame(Update);
 
-    if (gameOver)
-        return;
+    if (gameOver) return;
 
     Game.context.clearRect(0, 0, Game.board.width, Game.board.height);
     Game.player.x += Game.velocity.x;
     if (Game.player.x > Game.board.width)
         Game.player.x = 0;
-    else if (Game.player.x + Game.player.width < 0)
+    else if (Game.player.x + Game.player.width < 0) 
         Game.player.x = Game.board.width;
+
+    if (Game.velocity.y < -12) {
+        Game.velocity.y = -12;
+    }
 
     Game.velocity.y += Game.velocity.gravity;
     Game.player.y += Game.velocity.y;
-    if (Game.player.y > Game.board.height)
-        gameOver = true;
+    if (Game.player.y > Game.board.height) gameOver = true;
 
     Game.context.drawImage(Game.player.image, Game.player.x, Game.player.y, Game.player.width, Game.player.height);
 
     for (let index = 0; index < Game.platform.cache.length; index++) {
         let platform = Game.platform.cache[index];
-        if (Game.velocity.y < 0 && Game.player.y < Game.board.height * 3 / 4)
+
+        if (Game.velocity.y < 0 && Game.player.y < Game.board.height * 3 / 4) {
             platform.y -= Game.velocity.initialY;
-        if (detectCollision(Game.player, platform) && Game.velocity.y >= 0)
+        }
+
+        if (detectCollision(Game.player, platform) && Game.velocity.y >= 0) {
             Game.velocity.y = Game.velocity.initialY;
+            if (platform.breakable) {
+                Game.platform.cache.splice(index, 1);
+                index--;
+                plat();
+            }
+        }
 
         Game.context.drawImage(platform.image, platform.x, platform.y, platform.width, platform.height);
     }
 
-    while (Game.platform.cache[0].y >= Game.board.height) {
-        Game.platform.cache.shift();
+    let platformBuffer = 2 * Game.platform.height;
+    let lastPlatform = Game.platform.cache[Game.platform.cache.length - 1];
+    if (lastPlatform.y < Game.board.height - platformBuffer) {
         plat();
     }
 
+    while (Game.platform.cache[0].y >= Game.board.height) {
+        Game.platform.cache.shift();
+        plat(); 
+    }
+
     updateScore();
-    Game.context.fillStyle = "black";
-    Game.context.font = "16px sans-serif";
-    Game.context.fillText(score, 5, 20);
+    Game.context.fillStyle = 'black';
+    Game.context.font = '16px sans-serif';
+    Game.context.fillText('Score: ' + score, 10, 20);
+    let Max = 'Max: ' + max;
+    Game.context.fillText(Max, Game.board.width - Game.context.measureText(Max).width - 10, 20);
 
     if (gameOver)
         Game.context.fillText("Game Over: Press 'Space' to Restart", Game.board.width / 7, Game.board.height * 7 / 8);
@@ -115,12 +159,13 @@ function updateScore() {
     let points = Math.floor(50 * Math.random());
     if (Game.velocity.y < 0) {
         maxScore += points;
-        if (score < maxScore) {
+        if (score < maxScore)
             score = maxScore;
-        }
-    } else if (Game.velocity.y >= 0) {
-        maxScore -= points;
-    }
+    } else if (Game.velocity.y >= 0)
+        maxScore = Math.max(0, maxScore - points);
+
+    if (max < score)
+        max = score;
 }
 
 window.onload = function () {
@@ -132,6 +177,7 @@ window.onload = function () {
         },
         platform: {
             image: null,
+            imageBreak: null,
             width: 60,
             height: 18,
             cache: []
@@ -165,12 +211,13 @@ window.onload = function () {
             this.player.left.src = './assets/left.png';
             this.platform.image = new Image();
             this.platform.image.src = './assets/platform.png';
+            this.platform.imageBreak = new Image();
+            this.platform.imageBreak.src = './assets/platform-broken.png';
         }
     }
 
     Game.run();
     place();
     requestAnimationFrame(Update);
-    document.addEventListener("keydown", moveDoodler);
+    document.addEventListener('keydown', moveDoodler);
 }
-
