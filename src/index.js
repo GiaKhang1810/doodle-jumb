@@ -18,6 +18,7 @@ function createWindow() {
         devTools: true
     });
 
+    main.setMenuBarVisibility(null);
     main.loadFile(__dirname + '/index.html');
 }
 
